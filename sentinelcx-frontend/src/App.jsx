@@ -4,18 +4,23 @@ import {
   Users,
   MessageSquare,
   AlertTriangle,
+  GitBranch,
+  Brain,
   BarChart3,
-  Settings,
   Search,
   Bell,
-  ShieldCheck,
+  ChevronRight,
+  Clock,
+  CheckCircle,
+  XCircle,
   TrendingUp,
   Activity,
-  Brain,
-  CheckCircle,
-  Clock,
-  Target,
+  ShieldAlert,
+  Zap,
 } from "lucide-react";
+import "./App.css";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function App() {
   const [activePage, setActivePage] = useState("Dashboard");
@@ -25,1954 +30,1169 @@ function App() {
   const [crises, setCrises] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [aiActions, setAiActions] = useState([]);
-
   const [aiInsight, setAiInsight] = useState(null);
-  const [aiLoading, setAiLoading] = useState(true);
-  const [aiError, setAiError] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/customers")
-      .then((response) => response.json())
+    fetch(`${API_URL}/api/customers`)
+      .then((res) => res.json())
       .then((data) => setCustomers(data))
-      .catch((error) =>
-        console.error("Error fetching customers:", error)
-      );
-  }, []);
+      .catch((err) => console.error("Customers error:", err));
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/tickets")
-      .then((response) => response.json())
+    fetch(`${API_URL}/api/tickets`)
+      .then((res) => res.json())
       .then((data) => setTickets(data))
-      .catch((error) =>
-        console.error("Error fetching tickets:", error)
-      );
-  }, []);
+      .catch((err) => console.error("Tickets error:", err));
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/crises")
-      .then((response) => response.json())
+    fetch(`${API_URL}/api/crises`)
+      .then((res) => res.json())
       .then((data) => setCrises(data))
-      .catch((error) =>
-        console.error("Error fetching crises:", error)
-      );
-  }, []);
+      .catch((err) => console.error("Crises error:", err));
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/complaints")
-      .then((response) => response.json())
+    fetch(`${API_URL}/api/complaints`)
+      .then((res) => res.json())
       .then((data) => setComplaints(data))
-      .catch((error) =>
-        console.error("Error fetching complaints:", error)
-      );
-  }, []);
+      .catch((err) => console.error("Complaints error:", err));
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/ai-actions")
-      .then((response) => response.json())
+    fetch(`${API_URL}/api/ai-actions`)
+      .then((res) => res.json())
       .then((data) => setAiActions(data))
-      .catch((error) =>
-        console.error("Error fetching AI actions:", error)
-      );
-  }, []);
+      .catch((err) => console.error("AI actions error:", err));
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/ai-insights")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("AI insight request failed");
-        }
-
-        return response.json();
-      })
+    fetch(`${API_URL}/api/ai-insights`)
+      .then((res) => res.json())
       .then((data) => {
         if (data.status === "success") {
           setAiInsight(data.insight);
         }
-
-        setAiLoading(false);
       })
-      .catch((error) => {
-        console.error("Error fetching AI insight:", error);
-        setAiError(true);
-        setAiLoading(false);
-      });
+      .catch((err) => console.error("AI insights error:", err));
   }, []);
 
-  const menuItems = [
-    { name: "Dashboard", icon: LayoutDashboard },
-    { name: "Customers", icon: Users },
-    { name: "Support Inbox", icon: MessageSquare },
-    { name: "Crisis Center", icon: AlertTriangle },
-    { name: "Root Causes", icon: BarChart3 },
-    { name: "AI Actions", icon: Brain },
-    { name: "Analytics", icon: TrendingUp },
-  ];
+  const totalCustomers = customers.length;
+  const totalTickets = tickets.length;
+  const activeCrises = crises.filter(
+    (crisis) =>
+      crisis.status &&
+      crisis.status.toLowerCase() !== "resolved" &&
+      crisis.status.toLowerCase() !== "closed"
+  ).length;
+
+  const resolvedTickets = tickets.filter(
+    (ticket) =>
+      ticket.status &&
+      ticket.status.toLowerCase() === "resolved"
+  ).length;
+
+  const customerHealth =
+    totalCustomers > 0
+      ? Math.round(
+          ((totalCustomers - activeCrises) / totalCustomers) * 100
+        )
+      : 0;
+
+  const supportHealth =
+    totalTickets > 0
+      ? Math.round((resolvedTickets / totalTickets) * 100)
+      : 0;
+
+  const getRiskClass = (level) => {
+    if (!level) return "medium";
+
+    const value = level.toLowerCase();
+
+    if (value === "critical") return "critical";
+    if (value === "high") return "high";
+    if (value === "medium") return "medium";
+    return "low";
+  };
 
   return (
     <div className="app">
-
       {/* SIDEBAR */}
-
       <aside className="sidebar">
-
-        <div className="logo">
+        <div className="logo-section">
           <div className="logo-icon">
-            <ShieldCheck size={24} />
+            <ShieldAlert size={24} />
           </div>
 
           <div>
             <h2>SentinelCX</h2>
-            <p>Customer Intelligence</p>
+            <span>Customer Intelligence</span>
           </div>
         </div>
 
-        <nav>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+        <nav className="sidebar-nav">
+          <p className="nav-title">MAIN</p>
 
-            return (
-              <button
-                key={item.name}
-                className={`menu-item ${
-                  activePage === item.name ? "active" : ""
-                }`}
-                onClick={() => setActivePage(item.name)}
-              >
-                <Icon size={20} />
-                <span>{item.name}</span>
-              </button>
-            );
-          })}
+          <SidebarItem
+            icon={<LayoutDashboard size={19} />}
+            text="Dashboard"
+            active={activePage === "Dashboard"}
+            onClick={() => setActivePage("Dashboard")}
+          />
+
+          <SidebarItem
+            icon={<Users size={19} />}
+            text="Customers"
+            active={activePage === "Customers"}
+            onClick={() => setActivePage("Customers")}
+          />
+
+          <SidebarItem
+            icon={<MessageSquare size={19} />}
+            text="Support Inbox"
+            active={activePage === "Support Inbox"}
+            onClick={() => setActivePage("Support Inbox")}
+          />
+
+          <SidebarItem
+            icon={<AlertTriangle size={19} />}
+            text="Crisis Center"
+            active={activePage === "Crisis Center"}
+            onClick={() => setActivePage("Crisis Center")}
+          />
+
+          <p className="nav-title second-title">INTELLIGENCE</p>
+
+          <SidebarItem
+            icon={<GitBranch size={19} />}
+            text="Root Causes"
+            active={activePage === "Root Causes"}
+            onClick={() => setActivePage("Root Causes")}
+          />
+
+          <SidebarItem
+            icon={<Brain size={19} />}
+            text="AI Actions"
+            active={activePage === "AI Actions"}
+            onClick={() => setActivePage("AI Actions")}
+          />
+
+          <SidebarItem
+            icon={<BarChart3 size={19} />}
+            text="Analytics"
+            active={activePage === "Analytics"}
+            onClick={() => setActivePage("Analytics")}
+          />
         </nav>
 
         <div className="sidebar-bottom">
-
-          <button className="menu-item">
-            <Settings size={20} />
-            <span>Settings</span>
-          </button>
-
-          <div className="ai-status">
-            <div className="status-dot"></div>
-
-            <div>
-              <strong>AI System Online</strong>
-              <small>Monitoring customers</small>
-            </div>
+          <div className="system-status">
+            <span className="status-dot"></span>
+            <span>AI Engine Online</span>
           </div>
 
-        </div>
+          <div className="user-profile">
+            <div className="avatar">G</div>
 
+            <div>
+              <strong>Admin</strong>
+              <small>SentinelCX</small>
+            </div>
+          </div>
+        </div>
       </aside>
 
-      {/* MAIN */}
-
-      <main className="main">
-
+      {/* MAIN CONTENT */}
+      <main className="main-content">
         {/* HEADER */}
-
-        <header className="header">
-
-          <div>
+        <header className="top-header">
+          <div className="page-heading">
             <h1>{activePage}</h1>
-
             <p>
-              {activePage === "Dashboard"
-                ? "Real-time customer experience intelligence"
-                : `Manage ${activePage.toLowerCase()}`}
+              {activePage === "Dashboard" &&
+                "Real-time customer experience intelligence"}
+              {activePage === "Customers" &&
+                "Monitor your customer ecosystem"}
+              {activePage === "Support Inbox" &&
+                "Manage customer support signals"}
+              {activePage === "Crisis Center" &&
+                "Detect and respond to customer crises"}
+              {activePage === "Root Causes" &&
+                "Understand what's driving customer issues"}
+              {activePage === "AI Actions" &&
+                "AI-generated recommendations and actions"}
+              {activePage === "Analytics" &&
+                "Customer experience performance overview"}
             </p>
           </div>
 
-          <div className="header-right">
-
+          <div className="header-actions">
             <div className="search-box">
               <Search size={18} />
-
-              <input placeholder="Search customers..." />
+              <input placeholder="Search..." />
             </div>
 
-            <button className="icon-button">
-              <Bell size={20} />
-              <span className="notification-dot"></span>
+            <button className="notification-btn">
+              <Bell size={19} />
+              <span></span>
             </button>
 
-            <div className="profile">
-
-              <div className="avatar">
-                A
-              </div>
-
-              <div>
-                <strong>Admin</strong>
-                <small>Administrator</small>
-              </div>
-
-            </div>
-
+            <div className="header-avatar">G</div>
           </div>
-
         </header>
 
-        {/* ================================================= */}
         {/* DASHBOARD */}
-        {/* ================================================= */}
-
         {activePage === "Dashboard" && (
-          <>
-
+          <div className="page-content">
             {/* AI BANNER */}
-
             <section className="ai-banner">
-
               <div className="ai-banner-icon">
-                <Brain size={28} />
+                <Brain size={26} />
               </div>
 
-              <div>
-                <h3>
-                  AI Customer Intelligence is Active
-                </h3>
+              <div className="ai-banner-content">
+                <div className="ai-banner-title">
+                  <span>AI Intelligence Active</span>
+                  <span className="live-pill">LIVE</span>
+                </div>
 
                 <p>
-                  SentinelCX is continuously monitoring customer
-                  interactions, orders, sentiment and support patterns.
+                  SentinelCX is continuously analyzing customer signals,
+                  support tickets, orders and crisis patterns.
                 </p>
               </div>
 
-              <div className="monitoring">
-                <Activity size={18} />
-                Live Monitoring
-              </div>
-
+              {aiInsight && (
+                <div className="ai-banner-score">
+                  <span>Risk Score</span>
+                  <strong>{aiInsight.risk_score}/100</strong>
+                </div>
+              )}
             </section>
 
             {/* STATS */}
-
             <section className="stats-grid">
-
               <StatCard
                 title="Total Customers"
-                value={customers.length}
-                change="+8.2%"
-                icon={<Users size={24} />}
+                value={totalCustomers}
+                icon={<Users size={21} />}
+                trend="+12%"
+                trendUp={true}
               />
 
               <StatCard
-                title="Healthy Customers"
-                value="9,841"
-                change="78.8%"
-                icon={<ShieldCheck size={24} />}
+                title="Support Tickets"
+                value={totalTickets}
+                icon={<MessageSquare size={21} />}
+                trend="+8%"
+                trendUp={true}
               />
 
               <StatCard
-                title="At Risk"
-                value="1,923"
-                change="+4.6%"
-                icon={<Activity size={24} />}
+                title="Active Crises"
+                value={activeCrises}
+                icon={<AlertTriangle size={21} />}
+                trend="Live"
+                warning={activeCrises > 0}
               />
 
               <StatCard
-                title="Critical"
-                value="719"
-                change="+2.1%"
-                icon={<AlertTriangle size={24} />}
+                title="Customer Health"
+                value={`${customerHealth}%`}
+                icon={<Activity size={21} />}
+                trend="+4%"
+                trendUp={true}
               />
-
             </section>
 
-            {/* ================================================= */}
-            {/* NEW LIVE AI INTELLIGENCE PANEL */}
-            {/* ================================================= */}
+            {/* MAIN DASHBOARD GRID */}
+            <div className="dashboard-grid">
+              {/* AI INTELLIGENCE */}
+              <section className="panel ai-intelligence-panel">
+                <div className="panel-header">
+                  <div>
+                    <h2>
+                      <Brain size={20} />
+                      Live AI Intelligence
+                    </h2>
+                    <p>Multi-signal reasoning engine</p>
+                  </div>
 
-            <section className="section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>
-                    🧠 Live AI Intelligence
-                  </h2>
-
-                  <p>
-                    AI reasoning across multiple customer experience signals
-                  </p>
+                  <span className="live-indicator">
+                    <span></span> Live
+                  </span>
                 </div>
 
-                <span className="status executed">
-                  AI ACTIVE
-                </span>
-
-              </div>
-
-              <div className="crisis-card">
-
-                {aiLoading && (
-                  <div className="empty-page">
-
-                    <Brain size={40} />
-
-                    <h2>
-                      AI is analyzing signals...
-                    </h2>
-
-                    <p>
-                      Checking orders, tickets, complaints and crises.
-                    </p>
-
-                  </div>
-                )}
-
-                {aiError && !aiLoading && (
-                  <div className="empty-page">
-
-                    <AlertTriangle size={40} />
-
-                    <h2>
-                      AI insight unavailable
-                    </h2>
-
-                    <p>
-                      Make sure the SentinelCX backend is running.
-                    </p>
-
-                  </div>
-                )}
-
-                {aiInsight && !aiLoading && (
-
-                  <>
-
-                    {/* AI RISK HEADER */}
-
-                    <div className="crisis-top">
-
+                {aiInsight ? (
+                  <div className="ai-insight-content">
+                    <div className="insight-title-row">
                       <div>
-
-                        <span className="critical-label">
-                          {aiInsight.risk_level || "RISK"}
+                        <h3>{aiInsight.title}</h3>
+                        <span
+                          className={`risk-badge ${getRiskClass(
+                            aiInsight.risk_level
+                          )}`}
+                        >
+                          {aiInsight.risk_level} Risk
                         </span>
-
-                        <h2>
-                          {aiInsight.title}
-                        </h2>
-
-                        <p>
-                          SentinelCX identified this risk by
-                          reasoning across multiple live data sources.
-                        </p>
-
                       </div>
 
-                      <div className="crisis-score">
-
-                        <span>
-                          AI Risk Score
-                        </span>
-
-                        <strong>
-                          {aiInsight.risk_score}%
-                        </strong>
-
+                      <div className="risk-score">
+                        <strong>{aiInsight.risk_score}</strong>
+                        <span>/100</span>
                       </div>
-
                     </div>
 
-                    {/* SIGNALS */}
-
-                    <div className="crisis-stats">
-
-                      <div>
-                        <span>
-                          Delayed Orders
-                        </span>
-
+                    <div className="signal-grid">
+                      <div className="signal-card">
+                        <Clock size={17} />
+                        <span>Delayed Orders</span>
                         <strong>
                           {aiInsight.signal?.delayed_orders ?? 0}
                         </strong>
                       </div>
 
-                      <div>
-                        <span>
-                          High Priority Tickets
-                        </span>
-
+                      <div className="signal-card">
+                        <AlertTriangle size={17} />
+                        <span>High Priority</span>
                         <strong>
                           {aiInsight.signal?.high_priority_tickets ?? 0}
                         </strong>
                       </div>
 
-                      <div>
-                        <span>
-                          Active Crises
-                        </span>
-
-                        <strong>
-                          {aiInsight.signal?.active_crises ?? 0}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <span>
-                          Cancelled Orders
-                        </span>
-
+                      <div className="signal-card">
+                        <XCircle size={17} />
+                        <span>Cancelled</span>
                         <strong>
                           {aiInsight.signal?.cancelled_orders ?? 0}
                         </strong>
                       </div>
 
-                    </div>
-
-                    {/* REASONING */}
-
-                    <div className="crisis-action">
-
-                      <div>
-
+                      <div className="signal-card">
+                        <ShieldAlert size={17} />
+                        <span>Active Crises</span>
                         <strong>
-                          🧠 Why did AI detect this?
+                          {aiInsight.signal?.active_crises ?? 0}
                         </strong>
-
-                        <p>
-                          {aiInsight.reasoning}
-                        </p>
-
                       </div>
-
                     </div>
 
-                    {/* RECOMMENDATION */}
-
-                    <div className="crisis-action">
-
-                      <div>
-
-                        <strong>
-                          🎯 AI Recommendation
-                        </strong>
-
-                        <p>
-                          {aiInsight.recommendation}
-                        </p>
-
+                    <div className="reasoning-box">
+                      <div className="reasoning-heading">
+                        <Brain size={16} />
+                        <span>AI Reasoning</span>
                       </div>
 
-                      <button
-                        className="primary-button"
-                        onClick={() =>
-                          setActivePage("AI Actions")
-                        }
-                      >
-                        View AI Actions
-                      </button>
-
+                      <p>{aiInsight.reasoning}</p>
                     </div>
 
-                    {/* AFFECTED AREA */}
-
-                    <div className="action-item">
-
-                      <div className="action-icon">
-                        <Target size={19} />
+                    <div className="recommendation-box">
+                      <div className="recommendation-heading">
+                        <Zap size={16} />
+                        <span>Recommended Action</span>
                       </div>
 
-                      <div className="action-content">
-
-                        <strong>
-                          Affected Area
-                        </strong>
-
-                        <small>
-                          {aiInsight.affected_hub || "Multiple areas"}
-                        </small>
-
-                      </div>
-
+                      <p>{aiInsight.recommendation}</p>
                     </div>
-
-                    {/* DATA SOURCES */}
-
-                    <div className="ai-data-sources">
-
-                      <strong>
-                        🔗 Data Sources Used
-                      </strong>
-
-                      <div className="source-list">
-
-                        {aiInsight.data_sources?.map(
-                          (source, index) => (
-                            <span key={index}>
-                              ✓ {source}
-                            </span>
-                          )
-                        )}
-
-                      </div>
-
-                    </div>
-
-                  </>
-
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <Brain size={30} />
+                    <p>Analyzing customer signals...</p>
+                  </div>
                 )}
+              </section>
 
-              </div>
-
-            </section>
-
-            {/* ================================================= */}
-            {/* LIVE CUSTOMER CRISIS */}
-            {/* ================================================= */}
-
-            <section className="section">
-
-              <div className="section-header">
-
-                <div>
-                  <h2>
-                    🚨 Live Customer Crisis
-                  </h2>
-
-                  <p>
-                    AI detected a potential system-wide issue
-                  </p>
-                </div>
-
-                <button
-                  className="view-button"
-                  onClick={() =>
-                    setActivePage("Crisis Center")
-                  }
-                >
-                  View Crisis
-                </button>
-
-              </div>
-
-              <div className="crisis-card">
-
-                <div className="crisis-top">
-
+              {/* CRISIS */}
+              <section className="panel">
+                <div className="panel-header">
                   <div>
-
-                    <span className="critical-label">
-                      CRITICAL
-                    </span>
-
                     <h2>
-                      Delivery Hub Disruption
+                      <AlertTriangle size={20} />
+                      Live Customer Crisis
                     </h2>
-
-                    <p>
-                      AI detected an abnormal increase in delayed
-                      deliveries from <strong>BLR-HUB-04</strong>.
-                    </p>
-
-                  </div>
-
-                  <div className="crisis-score">
-
-                    <span>
-                      Risk Score
-                    </span>
-
-                    <strong>
-                      {aiInsight?.risk_score
-                        ? `${aiInsight.risk_score}%`
-                        : "82%"}
-                    </strong>
-
-                  </div>
-
-                </div>
-
-                <div className="crisis-stats">
-
-                  <div>
-                    <span>
-                      Affected Customers
-                    </span>
-
-                    <strong>
-                      {aiInsight?.affected_customers ?? 73}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Predicted Complaints
-                    </span>
-
-                    <strong>
-                      41
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Escalation Risk
-                    </span>
-
-                    <strong>
-                      {aiInsight?.risk_score
-                        ? `${aiInsight.risk_score}%`
-                        : "82%"}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>
-                      Revenue Risk
-                    </span>
-
-                    <strong>
-                      ₹1.8L
-                    </strong>
-                  </div>
-
-                </div>
-
-                <div className="crisis-action">
-
-                  <div>
-
-                    <strong>
-                      AI Recommendation
-                    </strong>
-
-                    <p>
-                      {aiInsight?.recommendation ||
-                        "Notify affected customers, prioritize delayed orders, offer eligible compensation and investigate the delivery hub."}
-                    </p>
-
+                    <p>Priority situations detected</p>
                   </div>
 
                   <button
-                    className="primary-button"
-                    onClick={() =>
-                      setActivePage("AI Actions")
-                    }
+                    className="view-all-btn"
+                    onClick={() => setActivePage("Crisis Center")}
                   >
-                    Investigate Crisis
+                    View all <ChevronRight size={15} />
                   </button>
-
                 </div>
 
-              </div>
+                {crises.length > 0 ? (
+                  <div className="crisis-list">
+                    {crises.slice(0, 4).map((crisis, index) => (
+                      <div className="crisis-item" key={crisis.id || index}>
+                        <div className="crisis-icon">
+                          <AlertTriangle size={18} />
+                        </div>
 
-            </section>
+                        <div className="crisis-info">
+                          <strong>
+                            {crisis.title ||
+                              crisis.issue ||
+                              "Customer Crisis"}
+                          </strong>
+
+                          <span>
+                            {crisis.description ||
+                              crisis.status ||
+                              "Requires attention"}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`priority ${
+                            crisis.priority?.toLowerCase() || "medium"
+                          }`}
+                        >
+                          {crisis.priority || "Medium"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <CheckCircle size={30} />
+                    <p>No active crises detected</p>
+                  </div>
+                )}
+              </section>
+            </div>
 
             {/* BOTTOM GRID */}
-
-            <div className="bottom-grid">
-
+            <div className="dashboard-grid bottom-grid">
               {/* ROOT CAUSES */}
-
               <section className="panel">
-
                 <div className="panel-header">
-
                   <div>
-
                     <h2>
+                      <GitBranch size={20} />
                       Top Root Causes
                     </h2>
-
-                    <p>
-                      AI analysis of complaints
-                    </p>
-
+                    <p>Leading customer complaints</p>
                   </div>
 
+                  <button
+                    className="view-all-btn"
+                    onClick={() => setActivePage("Root Causes")}
+                  >
+                    View all <ChevronRight size={15} />
+                  </button>
                 </div>
 
-                <RootCause
-                  name="Delivery Delays"
-                  percentage="32%"
-                  width="32%"
-                />
-
-                <RootCause
-                  name="Payment Failures"
-                  percentage="21%"
-                  width="21%"
-                />
-
-                <RootCause
-                  name="Product Defects"
-                  percentage="17%"
-                  width="17%"
-                />
-
-                <RootCause
-                  name="Refund Delays"
-                  percentage="11%"
-                  width="11%"
-                />
-
+                <div className="root-cause-list">
+                  {complaints.length > 0 ? (
+                    complaints.slice(0, 5).map((complaint, index) => (
+                      <RootCause
+                        key={complaint.id || index}
+                        title={
+                          complaint.category ||
+                          complaint.name ||
+                          complaint.complaint_category ||
+                          "Customer Issue"
+                        }
+                        count={
+                          complaint.count ||
+                          complaint.total ||
+                          complaint.frequency ||
+                          0
+                        }
+                        percentage={
+                          complaint.percentage ||
+                          complaint.percent ||
+                          0
+                        }
+                      />
+                    ))
+                  ) : (
+                    <div className="empty-state">
+                      <GitBranch size={30} />
+                      <p>No complaint data available</p>
+                    </div>
+                  )}
+                </div>
               </section>
 
               {/* AI ACTIONS */}
-
               <section className="panel">
-
                 <div className="panel-header">
-
                   <div>
-
                     <h2>
+                      <Zap size={20} />
                       AI Actions
                     </h2>
-
-                    <p>
-                      Recent autonomous decisions
-                    </p>
-
+                    <p>Recommended next steps</p>
                   </div>
 
-                </div>
-
-                <ActionItem
-                  title="Proactive delivery notification"
-                  customer="73 customers"
-                  status="Executed"
-                />
-
-                <ActionItem
-                  title="Priority ticket escalation"
-                  customer="27 customers"
-                  status="Executed"
-                />
-
-                <ActionItem
-                  title="Compensation recommendation"
-                  customer="18 customers"
-                  status="Pending"
-                />
-
-                <ActionItem
-                  title="Logistics investigation"
-                  customer="BLR-HUB-04"
-                  status="Pending"
-                />
-
-              </section>
-
-            </div>
-
-          </>
-        )}
-
-        {/* ================================================= */}
-        {/* CUSTOMERS */}
-        {/* ================================================= */}
-
-        {activePage === "Customers" && (
-          <div className="panel">
-
-            <div className="panel-header">
-
-              <div>
-
-                <h2>
-                  Customer List
-                </h2>
-
-                <p>
-                  Customers from SentinelCX database
-                </p>
-
-              </div>
-
-            </div>
-
-            {customers.map((customer) => (
-
-              <div
-                className="action-item"
-                key={customer.id}
-              >
-
-                <div className="action-icon">
-                  <Users size={18} />
-                </div>
-
-                <div className="action-content">
-
-                  <strong>
-                    {customer.name}
-                  </strong>
-
-                  <small>
-                    {customer.email}
-                  </small>
-
-                </div>
-
-                <span className="status executed">
-                  {customer.status}
-                </span>
-
-              </div>
-
-            ))}
-
-          </div>
-        )}
-
-        {/* ================================================= */}
-        {/* SUPPORT INBOX */}
-        {/* ================================================= */}
-
-        {activePage === "Support Inbox" && (
-          <div className="panel">
-
-            <div className="panel-header">
-
-              <div>
-
-                <h2>
-                  Support Inbox
-                </h2>
-
-                <p>
-                  Customer support tickets from SentinelCX database
-                </p>
-
-              </div>
-
-              <span className="status executed">
-                {tickets.length} Tickets
-              </span>
-
-            </div>
-
-            {tickets.length === 0 ? (
-
-              <div className="empty-page">
-
-                <MessageSquare size={40} />
-
-                <h2>
-                  No tickets found
-                </h2>
-
-                <p>
-                  No support tickets are available in the database.
-                </p>
-
-              </div>
-
-            ) : (
-
-              tickets.map((ticket) => (
-
-                <div
-                  className="action-item"
-                  key={ticket.id}
-                >
-
-                  <div className="action-icon">
-                    <MessageSquare size={18} />
-                  </div>
-
-                  <div className="action-content">
-
-                    <strong>
-                      {ticket.subject}
-                    </strong>
-
-                    <small>
-                      Customer: {ticket.customer_name}
-                    </small>
-
-                    <small>
-                      {ticket.description}
-                    </small>
-
-                  </div>
-
-                  <span
-                    className={`status ${
-                      ticket.priority
-                        ? ticket.priority.toLowerCase()
-                        : "pending"
-                    }`}
+                  <button
+                    className="view-all-btn"
+                    onClick={() => setActivePage("AI Actions")}
                   >
-                    {ticket.priority || "Normal"}
-                  </span>
-
+                    View all <ChevronRight size={15} />
+                  </button>
                 </div>
 
-              ))
-
-            )}
-
-          </div>
-        )}
-
-        {/* ================================================= */}
-        {/* CRISIS CENTER */}
-        {/* ================================================= */}
-
-        {activePage === "Crisis Center" && (
-          <div className="panel">
-
-            <div className="panel-header">
-
-              <div>
-
-                <h2>
-                  🚨 Crisis Center
-                </h2>
-
-                <p>
-                  Active customer experience crises detected by SentinelCX
-                </p>
-
-              </div>
-
-              <span className="status executed">
-                {crises.length} Crisis
-              </span>
-
+                <div className="action-list">
+                  {aiActions.length > 0 ? (
+                    aiActions.slice(0, 4).map((action, index) => (
+                      <ActionItem
+                        key={action.id || index}
+                        action={
+                          action.action ||
+                          action.title ||
+                          action.recommendation ||
+                          "Recommended action"
+                        }
+                        priority={action.priority || "Medium"}
+                        status={action.status || "Pending"}
+                      />
+                    ))
+                  ) : (
+                    <div className="empty-state">
+                      <Zap size={30} />
+                      <p>No AI actions available</p>
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
-
-            {crises.length === 0 ? (
-
-              <div className="empty-page">
-
-                <ShieldCheck size={40} />
-
-                <h2>
-                  No Active Crises
-                </h2>
-
-                <p>
-                  SentinelCX has not detected any active customer crisis.
-                </p>
-
-              </div>
-
-            ) : (
-
-              crises.map((crisis) => (
-
-                <div
-                  className="crisis-card"
-                  key={crisis.id}
-                >
-
-                  <div className="crisis-top">
-
-                    <div>
-
-                      <span className="critical-label">
-                        {crisis.status || "ACTIVE"}
-                      </span>
-
-                      <h2>
-                        {crisis.title ||
-                          crisis.name ||
-                          crisis.crisis_type ||
-                          "Customer Crisis"}
-                      </h2>
-
-                      <p>
-                        {crisis.description ||
-                          crisis.details ||
-                          "AI detected an abnormal customer experience pattern."}
-                      </p>
-
-                    </div>
-
-                    <div className="crisis-score">
-
-                      <span>
-                        Risk Score
-                      </span>
-
-                      <strong>
-                        {crisis.risk_score
-                          ? `${crisis.risk_score}%`
-                          : "—"}
-                      </strong>
-
-                    </div>
-
-                  </div>
-
-                  <div className="crisis-stats">
-
-                    <div>
-                      <span>
-                        Affected Customers
-                      </span>
-
-                      <strong>
-                        {crisis.affected_customers ||
-                          crisis.affected_count ||
-                          "—"}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Predicted Complaints
-                      </span>
-
-                      <strong>
-                        {crisis.predicted_complaints || "—"}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Escalation Risk
-                      </span>
-
-                      <strong>
-                        {crisis.escalation_risk
-                          ? `${crisis.escalation_risk}%`
-                          : "—"}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Revenue Risk
-                      </span>
-
-                      <strong>
-                        {crisis.revenue_risk || "—"}
-                      </strong>
-                    </div>
-
-                  </div>
-
-                  <div className="crisis-action">
-
-                    <div>
-
-                      <strong>
-                        AI Recommendation
-                      </strong>
-
-                      <p>
-                        {crisis.recommendation ||
-                          crisis.ai_recommendation ||
-                          "Review affected customers and take proactive action."}
-                      </p>
-
-                    </div>
-
-                    <button className="primary-button">
-                      Investigate Crisis
-                    </button>
-
-                  </div>
-
-                </div>
-
-              ))
-
-            )}
-
           </div>
         )}
 
-        {/* ================================================= */}
-        {/* ROOT CAUSES */}
-        {/* ================================================= */}
-
-        {activePage === "Root Causes" && (
-          <div className="panel">
-
-            <div className="panel-header">
-
-              <div>
-
-                <h2>
-                  🔍 Root Causes
-                </h2>
-
-                <p>
-                  Complaint categories from SentinelCX database
-                </p>
-
-              </div>
-
-              <span className="status executed">
-                {complaints.length} Categories
-              </span>
-
-            </div>
-
-            {complaints.length === 0 ? (
-
-              <div className="empty-page">
-
-                <BarChart3 size={40} />
-
-                <h2>
-                  No Complaint Data
-                </h2>
-
-                <p>
-                  No complaint categories are available.
-                </p>
-
-              </div>
-
-            ) : (
-
-              complaints.map((complaint, index) => (
-
-                <div
-                  className="root-cause"
-                  key={complaint.id || index}
-                >
-
-                  <div className="root-info">
-
-                    <span>
-                      {complaint.category ||
-                        complaint.name ||
-                        complaint.complaint_category ||
-                        complaint.title ||
-                        "Complaint Category"}
-                    </span>
-
-                    <strong>
-                      {complaint.percentage
-                        ? `${complaint.percentage}%`
-                        : complaint.count || 0}
-                    </strong>
-
-                  </div>
-
-                  <div className="progress">
-
-                    <div
-                      style={{
-                        width: `${Math.min(
-                          Number(complaint.percentage) || 10,
-                          100
-                        )}%`,
-                      }}
-                    ></div>
-
-                  </div>
-
-                </div>
-
-              ))
-
-            )}
-
-          </div>
-        )}
-
-        {/* ================================================= */}
-        {/* AI ACTIONS */}
-        {/* ================================================= */}
-
-        {activePage === "AI Actions" && (
-          <>
-
-            <div className="panel">
-
+        {/* CUSTOMERS */}
+        {activePage === "Customers" && (
+          <div className="page-content">
+            <section className="panel full-panel">
               <div className="panel-header">
-
                 <div>
-
                   <h2>
-                    🧠 AI Reasoning Engine
+                    <Users size={20} />
+                    Customer Directory
                   </h2>
-
-                  <p>
-                    SentinelCX is reasoning across multiple customer
-                    experience data sources
-                  </p>
-
+                  <p>{customers.length} customers in the system</p>
                 </div>
-
-                <span className="status executed">
-                  AI ACTIVE
-                </span>
-
               </div>
 
-              {aiLoading && (
+              {customers.length > 0 ? (
+                <div className="data-table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Customer</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Segment</th>
+                      </tr>
+                    </thead>
 
-                <div className="empty-page">
+                    <tbody>
+                      {customers.map((customer, index) => (
+                        <tr key={customer.id || index}>
+                          <td>
+                            <div className="table-user">
+                              <div className="small-avatar">
+                                {(customer.name || "C")
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </div>
 
-                  <Brain size={40} />
+                              <strong>
+                                {customer.name ||
+                                  customer.customer_name ||
+                                  "Customer"}
+                              </strong>
+                            </div>
+                          </td>
 
-                  <h2>
-                    AI is analyzing signals...
-                  </h2>
+                          <td>
+                            {customer.email || "—"}
+                          </td>
 
-                  <p>
-                    Checking orders, support tickets, complaints and crises.
-                  </p>
+                          <td>
+                            <span className="status-badge active">
+                              {customer.status || "Active"}
+                            </span>
+                          </td>
 
+                          <td>
+                            {customer.segment || customer.type || "Standard"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-
-              )}
-
-              {aiError && !aiLoading && (
-
-                <div className="empty-page">
-
-                  <AlertTriangle size={40} />
-
-                  <h2>
-                    AI insight unavailable
-                  </h2>
-
-                  <p>
-                    Make sure the SentinelCX backend is running.
-                  </p>
-
-                </div>
-
-              )}
-
-              {aiInsight && !aiLoading && (
-
-                <>
-
-                  <div className="ai-insight-header">
-
-                    <div>
-
-                      <span className="critical-label">
-                        {aiInsight.risk_level || "RISK"}
-                      </span>
-
-                      <h2>
-                        {aiInsight.title}
-                      </h2>
-
-                    </div>
-
-                    <div className="crisis-score">
-
-                      <span>
-                        AI Risk Score
-                      </span>
-
-                      <strong>
-                        {aiInsight.risk_score}%
-                      </strong>
-
-                    </div>
-
-                  </div>
-
-                  <div className="crisis-stats">
-
-                    <div>
-                      <span>
-                        Delayed Orders
-                      </span>
-
-                      <strong>
-                        {aiInsight.signal?.delayed_orders ?? 0}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        High Priority Tickets
-                      </span>
-
-                      <strong>
-                        {aiInsight.signal?.high_priority_tickets ?? 0}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Active Crises
-                      </span>
-
-                      <strong>
-                        {aiInsight.signal?.active_crises ?? 0}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Cancelled Orders
-                      </span>
-
-                      <strong>
-                        {aiInsight.signal?.cancelled_orders ?? 0}
-                      </strong>
-                    </div>
-
-                  </div>
-
-                  <div className="crisis-action">
-
-                    <div>
-
-                      <strong>
-                        🧠 Why SentinelCX detected this
-                      </strong>
-
-                      <p>
-                        {aiInsight.reasoning}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                  <div className="crisis-action">
-
-                    <div>
-
-                      <strong>
-                        🎯 AI Recommendation
-                      </strong>
-
-                      <p>
-                        {aiInsight.recommendation}
-                      </p>
-
-                    </div>
-
-                    <button className="primary-button">
-                      Take Action
-                    </button>
-
-                  </div>
-
-                  <div className="action-item">
-
-                    <div className="action-icon">
-                      <Target size={19} />
-                    </div>
-
-                    <div className="action-content">
-
-                      <strong>
-                        Affected Area
-                      </strong>
-
-                      <small>
-                        {aiInsight.affected_hub}
-                      </small>
-
-                    </div>
-
-                  </div>
-
-                  <div className="ai-data-sources">
-
-                    <strong>
-                      🔗 Data Sources Used for Reasoning
-                    </strong>
-
-                    <div className="source-list">
-
-                      {aiInsight.data_sources?.map(
-                        (source, index) => (
-
-                          <span key={index}>
-                            ✓ {source}
-                          </span>
-
-                        )
-                      )}
-
-                    </div>
-
-                  </div>
-
-                </>
-
-              )}
-
-            </div>
-
-            <div className="panel">
-
-              <div className="panel-header">
-
-                <div>
-
-                  <h2>
-                    🤖 AI Actions
-                  </h2>
-
-                  <p>
-                    Autonomous decisions generated by SentinelCX
-                  </p>
-
-                </div>
-
-                <span className="status executed">
-                  {aiActions.length} Actions
-                </span>
-
-              </div>
-
-              {aiActions.length === 0 ? (
-
-                <div className="empty-page">
-
-                  <Brain size={40} />
-
-                  <h2>
-                    No AI Actions
-                  </h2>
-
-                  <p>
-                    No AI actions are available in the database.
-                  </p>
-
-                </div>
-
               ) : (
+                <div className="empty-state">
+                  <Users size={35} />
+                  <p>No customers found</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
-                aiActions.map((action, index) => {
+        {/* SUPPORT INBOX */}
+        {activePage === "Support Inbox" && (
+          <div className="page-content">
+            <section className="panel full-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>
+                    <MessageSquare size={20} />
+                    Support Inbox
+                  </h2>
+                  <p>Customer support signals</p>
+                </div>
+              </div>
 
-                  const actionStatus =
-                    action.status ||
-                    action.action_status ||
-                    "Pending";
-
-                  const isExecuted =
-                    actionStatus.toLowerCase() === "executed" ||
-                    actionStatus.toLowerCase() === "completed";
-
-                  return (
-
+              {tickets.length > 0 ? (
+                <div className="ticket-list">
+                  {tickets.map((ticket, index) => (
                     <div
-                      className="action-item"
-                      key={action.id || index}
+                      className="ticket-card"
+                      key={ticket.id || index}
                     >
-
-                      <div className="action-icon">
-
-                        {isExecuted ? (
-                          <CheckCircle size={19} />
-                        ) : (
-                          <Clock size={19} />
-                        )}
-
+                      <div className="ticket-icon">
+                        <MessageSquare size={18} />
                       </div>
 
-                      <div className="action-content">
+                      <div className="ticket-content">
+                        <div className="ticket-top">
+                          <strong>
+                            {ticket.subject ||
+                              ticket.title ||
+                              "Customer Support Ticket"}
+                          </strong>
 
+                          <span
+                            className={`priority ${
+                              ticket.priority?.toLowerCase() || "medium"
+                            }`}
+                          >
+                            {ticket.priority || "Medium"}
+                          </span>
+                        </div>
+
+                        <p>
+                          {ticket.description ||
+                            ticket.message ||
+                            ticket.issue ||
+                            "No description available"}
+                        </p>
+
+                        <div className="ticket-meta">
+                          <span>
+                            Status: {ticket.status || "Open"}
+                          </span>
+
+                          {ticket.customer_name && (
+                            <span>
+                              Customer: {ticket.customer_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <MessageSquare size={35} />
+                  <p>No support tickets found</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* CRISIS CENTER */}
+        {activePage === "Crisis Center" && (
+          <div className="page-content">
+            <section className="panel full-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>
+                    <AlertTriangle size={20} />
+                    Crisis Center
+                  </h2>
+                  <p>Customer issues requiring attention</p>
+                </div>
+              </div>
+
+              {crises.length > 0 ? (
+                <div className="crisis-list large">
+                  {crises.map((crisis, index) => (
+                    <div
+                      className="crisis-item"
+                      key={crisis.id || index}
+                    >
+                      <div className="crisis-icon">
+                        <AlertTriangle size={19} />
+                      </div>
+
+                      <div className="crisis-info">
                         <strong>
-                          {action.action ||
-                            action.action_name ||
-                            action.title ||
-                            action.recommendation ||
-                            "AI Recommended Action"}
+                          {crisis.title ||
+                            crisis.issue ||
+                            "Customer Crisis"}
                         </strong>
 
-                        <small>
-                          {action.reason ||
-                            action.description ||
-                            action.details ||
-                            "AI identified this action based on customer experience signals."}
-                        </small>
-
-                        {action.affected_customers && (
-
-                          <small>
-                            Affected Customers:{" "}
-                            {action.affected_customers}
-                          </small>
-
-                        )}
-
+                        <span>
+                          {crisis.description ||
+                            crisis.status ||
+                            "Requires attention"}
+                        </span>
                       </div>
 
                       <span
-                        className={`status ${
-                          isExecuted
-                            ? "executed"
-                            : "pending"
+                        className={`priority ${
+                          crisis.priority?.toLowerCase() || "medium"
                         }`}
                       >
-                        {actionStatus}
+                        {crisis.priority || "Medium"}
                       </span>
-
                     </div>
-
-                  );
-
-                })
-
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <CheckCircle size={35} />
+                  <p>No active crises detected</p>
+                </div>
               )}
-
-            </div>
-
-          </>
+            </section>
+          </div>
         )}
 
-        {/* ================================================= */}
+        {/* ROOT CAUSES */}
+        {activePage === "Root Causes" && (
+          <div className="page-content">
+            <section className="panel full-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>
+                    <GitBranch size={20} />
+                    Root Cause Analysis
+                  </h2>
+                  <p>
+                    AI-assisted analysis of customer complaint patterns
+                  </p>
+                </div>
+              </div>
+
+              {complaints.length > 0 ? (
+                <div className="root-cause-grid">
+                  {complaints.map((complaint, index) => (
+                    <div
+                      className="root-cause-card"
+                      key={complaint.id || index}
+                    >
+                      <div className="root-cause-card-icon">
+                        <GitBranch size={19} />
+                      </div>
+
+                      <div>
+                        <h3>
+                          {complaint.category ||
+                            complaint.name ||
+                            complaint.complaint_category ||
+                            "Customer Issue"}
+                        </h3>
+
+                        <p>
+                          {complaint.count ||
+                            complaint.total ||
+                            complaint.frequency ||
+                            0}{" "}
+                          reported cases
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <GitBranch size={35} />
+                  <p>No root cause data available</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* AI ACTIONS */}
+        {activePage === "AI Actions" && (
+          <div className="page-content">
+            <section className="panel full-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>
+                    <Brain size={20} />
+                    AI Reasoning Engine
+                  </h2>
+                  <p>
+                    Recommendations generated from multiple customer
+                    data sources
+                  </p>
+                </div>
+
+                {aiInsight && (
+                  <span
+                    className={`risk-badge ${getRiskClass(
+                      aiInsight.risk_level
+                    )}`}
+                  >
+                    {aiInsight.risk_level} Risk
+                  </span>
+                )}
+              </div>
+
+              {aiInsight ? (
+                <div className="ai-actions-content">
+                  <div className="large-insight-card">
+                    <div className="large-insight-header">
+                      <div>
+                        <h3>{aiInsight.title}</h3>
+
+                        <p>
+                          Generated using:
+                          {aiInsight.data_sources?.join(", ") ||
+                            "multiple data sources"}
+                        </p>
+                      </div>
+
+                      <div className="large-risk-score">
+                        {aiInsight.risk_score}
+                        <small>/100</small>
+                      </div>
+                    </div>
+
+                    <div className="reasoning-box">
+                      <div className="reasoning-heading">
+                        <Brain size={17} />
+                        <span>Reasoning</span>
+                      </div>
+
+                      <p>{aiInsight.reasoning}</p>
+                    </div>
+
+                    <div className="recommendation-box">
+                      <div className="recommendation-heading">
+                        <Zap size={17} />
+                        <span>Recommended Action</span>
+                      </div>
+
+                      <p>{aiInsight.recommendation}</p>
+                    </div>
+
+                    <div className="insight-details">
+                      <div>
+                        <span>Affected Hub</span>
+                        <strong>
+                          {aiInsight.affected_hub || "Multiple"}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Affected Customers</span>
+                        <strong>
+                          {aiInsight.affected_customers ?? 0}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Leading Complaint</span>
+                        <strong>
+                          {aiInsight.signal?.leading_complaint ||
+                            "None detected"}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="action-section">
+                    <h3>AI Actions</h3>
+
+                    {aiActions.length > 0 ? (
+                      <div className="action-list">
+                        {aiActions.map((action, index) => (
+                          <ActionItem
+                            key={action.id || index}
+                            action={
+                              action.action ||
+                              action.title ||
+                              action.recommendation ||
+                              "Recommended action"
+                            }
+                            priority={action.priority || "Medium"}
+                            status={action.status || "Pending"}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="empty-state">
+                        <Zap size={30} />
+                        <p>No AI actions available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <Brain size={35} />
+                  <p>AI reasoning engine is analyzing the data...</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
         {/* ANALYTICS */}
-        {/* ================================================= */}
-
         {activePage === "Analytics" && (
-          <>
-
+          <div className="page-content">
             <section className="stats-grid">
-
               <StatCard
-                title="Total Customers"
-                value={customers.length}
-                change="Live"
-                icon={<Users size={24} />}
+                title="Customers"
+                value={totalCustomers}
+                icon={<Users size={21} />}
+                trend="Live"
               />
 
               <StatCard
                 title="Support Tickets"
-                value={tickets.length}
-                change="Live"
-                icon={<MessageSquare size={24} />}
+                value={totalTickets}
+                icon={<MessageSquare size={21} />}
+                trend="Live"
               />
 
               <StatCard
                 title="Active Crises"
-                value={crises.length}
-                change="Live"
-                icon={<AlertTriangle size={24} />}
+                value={activeCrises}
+                icon={<AlertTriangle size={21} />}
+                trend="Live"
+                warning={activeCrises > 0}
               />
 
               <StatCard
-                title="AI Actions"
-                value={aiActions.length}
-                change="Live"
-                icon={<Brain size={24} />}
+                title="Ticket Resolution"
+                value={`${supportHealth}%`}
+                icon={<CheckCircle size={21} />}
+                trend="Calculated"
               />
-
             </section>
 
-            <div className="bottom-grid">
-
+            <div className="analytics-grid">
               <section className="panel">
-
                 <div className="panel-header">
-
                   <div>
-
                     <h2>
-                      Customer Health
+                      <BarChart3 size={20} />
+                      Experience Health
                     </h2>
-
-                    <p>
-                      Current customer risk distribution
-                    </p>
-
+                    <p>Current customer experience indicators</p>
                   </div>
-
                 </div>
 
-                <div className="analytics-row">
+                <div className="analytics-list">
+                  <AnalyticsItem
+                    title="Customer Health"
+                    value={`${customerHealth}%`}
+                    percentage={customerHealth}
+                  />
 
-                  <div>
+                  <AnalyticsItem
+                    title="Support Resolution"
+                    value={`${supportHealth}%`}
+                    percentage={supportHealth}
+                  />
 
-                    <span className="analytics-label">
-                      Healthy
-                    </span>
-
-                    <strong>
-                      78.8%
-                    </strong>
-
-                    <div className="analytics-bar">
-
-                      <div
-                        style={{
-                          width: "78.8%",
-                        }}
-                      ></div>
-
-                    </div>
-
-                  </div>
-
+                  <AnalyticsItem
+                    title="Crisis Control"
+                    value={
+                      activeCrises === 0
+                        ? "100%"
+                        : `${Math.max(
+                            0,
+                            100 - activeCrises * 10
+                          )}%`
+                    }
+                    percentage={
+                      activeCrises === 0
+                        ? 100
+                        : Math.max(0, 100 - activeCrises * 10)
+                    }
+                  />
                 </div>
-
-                <div className="analytics-row">
-
-                  <div>
-
-                    <span className="analytics-label">
-                      At Risk
-                    </span>
-
-                    <strong>
-                      15.4%
-                    </strong>
-
-                    <div className="analytics-bar">
-
-                      <div
-                        style={{
-                          width: "15.4%",
-                        }}
-                      ></div>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="analytics-row">
-
-                  <div>
-
-                    <span className="analytics-label">
-                      Critical
-                    </span>
-
-                    <strong>
-                      5.8%
-                    </strong>
-
-                    <div className="analytics-bar">
-
-                      <div
-                        style={{
-                          width: "5.8%",
-                        }}
-                      ></div>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
               </section>
 
               <section className="panel">
-
                 <div className="panel-header">
-
                   <div>
-
                     <h2>
-                      System Activity
+                      <TrendingUp size={20} />
+                      AI Risk Overview
                     </h2>
-
-                    <p>
-                      SentinelCX intelligence overview
-                    </p>
-
+                    <p>Latest intelligence assessment</p>
                   </div>
-
                 </div>
 
-                <AnalyticsItem
-                  icon={<Users size={20} />}
-                  title="Customers monitored"
-                  value={customers.length}
-                />
+                {aiInsight ? (
+                  <div className="analytics-risk">
+                    <div className="analytics-risk-score">
+                      <strong>{aiInsight.risk_score}</strong>
+                      <span>/100</span>
+                    </div>
 
-                <AnalyticsItem
-                  icon={<MessageSquare size={20} />}
-                  title="Support tickets analyzed"
-                  value={tickets.length}
-                />
+                    <div>
+                      <span
+                        className={`risk-badge ${getRiskClass(
+                          aiInsight.risk_level
+                        )}`}
+                      >
+                        {aiInsight.risk_level} Risk
+                      </span>
 
-                <AnalyticsItem
-                  icon={<AlertTriangle size={20} />}
-                  title="Crisis signals detected"
-                  value={crises.length}
-                />
-
-                <AnalyticsItem
-                  icon={<Brain size={20} />}
-                  title="AI decisions generated"
-                  value={aiActions.length}
-                />
-
+                      <p>{aiInsight.title}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <Brain size={30} />
+                    <p>Risk analysis unavailable</p>
+                  </div>
+                )}
               </section>
-
             </div>
-
-            <section className="panel analytics-full">
-
-              <div className="panel-header">
-
-                <div>
-
-                  <h2>
-                    Complaint Analysis
-                  </h2>
-
-                  <p>
-                    Major customer experience problem areas
-                  </p>
-
-                </div>
-
-              </div>
-
-              {complaints.length === 0 ? (
-
-                <p>
-                  No complaint analytics available.
-                </p>
-
-              ) : (
-
-                complaints.map((complaint, index) => {
-
-                  const percentage =
-                    Number(complaint.percentage) || 10;
-
-                  return (
-
-                    <div
-                      className="analytics-complaint"
-                      key={complaint.id || index}
-                    >
-
-                      <div>
-
-                        <strong>
-                          {complaint.category ||
-                            complaint.name ||
-                            complaint.complaint_category ||
-                            complaint.title ||
-                            "Complaint"}
-                        </strong>
-
-                        <span>
-                          {complaint.count || ""}
-                        </span>
-
-                      </div>
-
-                      <div className="analytics-bar">
-
-                        <div
-                          style={{
-                            width: `${Math.min(
-                              percentage,
-                              100
-                            )}%`,
-                          }}
-                        ></div>
-
-                      </div>
-
-                      <strong>
-                        {complaint.percentage
-                          ? `${complaint.percentage}%`
-                          : ""}
-                      </strong>
-
-                    </div>
-
-                  );
-
-                })
-
-              )}
-
-            </section>
-
-          </>
+          </div>
         )}
-
-        {/* FALLBACK */}
-
-        {activePage !== "Dashboard" &&
-          activePage !== "Customers" &&
-          activePage !== "Support Inbox" &&
-          activePage !== "Crisis Center" &&
-          activePage !== "Root Causes" &&
-          activePage !== "AI Actions" &&
-          activePage !== "Analytics" && (
-
-            <div className="empty-page">
-
-              <Brain size={48} />
-
-              <h2>
-                {activePage}
-              </h2>
-
-              <p>
-                This module will be connected next.
-              </p>
-
-            </div>
-
-          )}
-
       </main>
-
     </div>
   );
 }
 
+/* SIDEBAR ITEM */
+function SidebarItem({ icon, text, active, onClick }) {
+  return (
+    <button
+      className={`sidebar-item ${active ? "active" : ""}`}
+      onClick={onClick}
+    >
+      {icon}
+      <span>{text}</span>
+    </button>
+  );
+}
 
-/* ================================================= */
 /* STAT CARD */
-/* ================================================= */
-
 function StatCard({
   title,
   value,
-  change,
   icon,
+  trend,
+  trendUp,
+  warning,
 }) {
   return (
-
     <div className="stat-card">
+      <div className="stat-card-top">
+        <div className="stat-icon">{icon}</div>
 
-      <div className="stat-top">
+        <span
+          className={`stat-trend ${
+            warning
+              ? "warning"
+              : trendUp
+              ? "up"
+              : ""
+          }`}
+        >
+          {trend}
+        </span>
+      </div>
 
-        <div className="stat-icon">
-          {icon}
+      <div className="stat-value">{value}</div>
+      <div className="stat-title">{title}</div>
+    </div>
+  );
+}
+
+/* ROOT CAUSE */
+function RootCause({ title, count, percentage }) {
+  const safePercentage =
+    Number(percentage) > 0
+      ? Math.min(100, Number(percentage))
+      : 0;
+
+  return (
+    <div className="root-cause-item">
+      <div className="root-cause-info">
+        <div>
+          <strong>{title}</strong>
+          <span>{count} cases</span>
         </div>
 
-        <span>
-          {change}
-        </span>
-
+        <strong>{safePercentage}%</strong>
       </div>
 
-      <p>
-        {title}
-      </p>
-
-      <h2>
-        {value}
-      </h2>
-
+      <div className="progress-bar">
+        <div
+          className="progress-fill"
+          style={{ width: `${safePercentage}%` }}
+        ></div>
+      </div>
     </div>
   );
 }
 
-
-/* ================================================= */
-/* ROOT CAUSE */
-/* ================================================= */
-
-function RootCause({
-  name,
-  percentage,
-  width,
-}) {
+/* AI ACTION */
+function ActionItem({ action, priority, status }) {
   return (
-
-    <div className="root-cause">
-
-      <div className="root-info">
-
-        <span>
-          {name}
-        </span>
-
-        <strong>
-          {percentage}
-        </strong>
-
+    <div className="action-item">
+      <div className="action-icon">
+        <Zap size={17} />
       </div>
 
-      <div className="progress">
+      <div className="action-content">
+        <strong>{action}</strong>
 
+        <div className="action-meta">
+          <span
+            className={`priority ${
+              priority?.toLowerCase() || "medium"
+            }`}
+          >
+            {priority}
+          </span>
+
+          <span className="action-status">
+            {status}
+          </span>
+        </div>
+      </div>
+
+      <ChevronRight size={17} />
+    </div>
+  );
+}
+
+/* ANALYTICS ITEM */
+function AnalyticsItem({ title, value, percentage }) {
+  return (
+    <div className="analytics-item">
+      <div className="analytics-item-top">
+        <span>{title}</span>
+        <strong>{value}</strong>
+      </div>
+
+      <div className="progress-bar">
         <div
+          className="progress-fill"
           style={{
-            width: width,
+            width: `${Math.min(
+              100,
+              Math.max(0, Number(percentage) || 0)
+            )}%`,
           }}
         ></div>
-
       </div>
-
     </div>
   );
 }
-
-
-/* ================================================= */
-/* AI ACTION */
-/* ================================================= */
-
-function ActionItem({
-  title,
-  customer,
-  status,
-}) {
-  return (
-
-    <div className="action-item">
-
-      <div className="action-icon">
-        <Brain size={18} />
-      </div>
-
-      <div className="action-content">
-
-        <strong>
-          {title}
-        </strong>
-
-        <small>
-          {customer}
-        </small>
-
-      </div>
-
-      <span
-        className={`status ${status.toLowerCase()}`}
-      >
-        {status}
-      </span>
-
-    </div>
-  );
-}
-
-
-/* ================================================= */
-/* ANALYTICS ITEM */
-/* ================================================= */
-
-function AnalyticsItem({
-  icon,
-  title,
-  value,
-}) {
-  return (
-
-    <div className="action-item">
-
-      <div className="action-icon">
-        {icon}
-      </div>
-
-      <div className="action-content">
-
-        <strong>
-          {title}
-        </strong>
-
-      </div>
-
-      <strong>
-        {value}
-      </strong>
-
-    </div>
-  );
-}
-
 
 export default App;
